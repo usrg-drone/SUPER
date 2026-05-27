@@ -26,6 +26,7 @@
 
 
 # Updates
+* **ROS2 branch note** - This branch has been updated from the original SUPER codebase to a ROS2-focused version. The build files now use `ament_cmake`/`colcon`, and the runtime examples below use `ros2 launch`.
 * **Mar. 09, 2025** - The hardware components of SUPER have been released at [SUPER-Hardware](https://github.com/hku-mars/SUPER-Hardware) 🦾
 * **Jan. 29, 2025** - The preview version of SUPER's planning module, supporting both ROS1 and ROS2, is now available! Try it out, and we welcome any issues or contributions.
 * **Jan. 29, 2025** - The paper of SUPER is now featured on the official website of [*Science Robotics*](https://www.science.org/doi/10.1126/scirobotics.ado6187).
@@ -107,69 +108,28 @@ sudo apt-get install libeigen3-dev
 sudo ln -s /usr/include/eigen3/Eigen /usr/include/Eigen
 # dw for backward cpp
 sudo apt-get install libdw-dev
-# for ROS dependency
-sudo apt-get install ros-${YOUR-ROS-VERSION}-mavros* ros-${YOUR-ROS-VERSION}-pcl* ros-${YOUR-ROS-VERSION}-rosfmt
-```
-
-Before building the code, select the appropriate ROS version:
-
-```bash
-# Use ROS1-noetic
-bash ${PATH-TO-SUPER}/SUPER/scripts/select_ros_version.sh ROS1
-# Use ROS2
-bash ${PATH-TO-SUPER}/SUPER/scripts/select_ros_version.sh ROS2
+# for ROS2 dependency
+sudo apt-get install ros-${ROS_DISTRO}-mavros* ros-${ROS_DISTRO}-pcl* ros-${ROS_DISTRO}-rosfmt
 ```
 
 Tested Environments:
 
-* Ubuntu 20.04 + ROS1 Noetic
-* Ubuntu 20.04 + ROS2 foxy
+* Ubuntu 22.04 + ROS2 Humble
+* Ubuntu 20.04 + ROS2 Foxy
 * ...
 
-Currently, **ROS1 Noetic** serves as the **Tier 1** supported platform for SUPER. The ROS2 version is still under development and may be unstable, with some issues such as imperfect visualization. We are actively working on improvements.
+This branch is intended for **ROS2**. It has been converted from the original SUPER codebase by updating package manifests, CMake configuration, node code, and launch entry points to ROS2 conventions.
 
 ### Known Build issues
 
 * ...
 
-## 2.2  ROS1 (Noetic) Installation
-```bash
-mkdir -p super_ws/src && cd super_ws/src
-git clone https://github.com/hku-mars/SUPER.git
-cd ..
-catkin_make -DBUILD_TYPE=Release
-```
-
-To test, use one of the following commands:
-
-1. **High-Speed Navigation**
-
-```bash
-cd ${PATH-TO-WS}
-source devel/setup.bash
-roslaunch mission_planner benchmark_high_speed.launch
-```
-
-2. **Agile Flight in Dense Environments**
-
-```bash
-cd ${PATH-TO-WS}
-source devel/setup.bash
-roslaunch mission_planner benchmark_dense.launch
-```
-
-3. **Click and Go Demo**
-
-```
-roslaunch mission_planner click_demo.launch 
-```
-In the click demo, press `G` to enable the `2D Goal Pose` plugin, then click a position in RViz to set the goal.
-## 2.3 ROS2
+## 2.2 ROS2 Build
 
 
 ```bash
 mkdir -p super_ws/src && cd super_ws/src
-git clone https://github.com/hku-mars/SUPER.git
+git clone -b jkp https://github.com/usrg-drone/SUPER.git
 cd ..
 colcon build --symlink-install
 # add to debug:  --event-handlers console_direct+ 
@@ -198,12 +158,13 @@ ros2 launch mission_planner benchmark_dense.launch.py
 ```
 ros2 launch mission_planner click_demo.launch.py
 ```
+In the click demo, press `G` to enable the `2D Goal Pose` plugin, then click a position in RViz to set the goal.
 
 ### Real-world deployment
 
 A detailed guide for deploying SUPER on real-world hardware will be available soon. In the meantime, you can refer to [issue #5](https://github.com/hku-mars/SUPER/issues/5) for some helpful hints.
 
-## 2.4 Use Your Own Map
+## 2.3 Use Your Own Map
 
 SUPER allows users to load their own **.pcd** maps as simulation environments. To do so:
 
@@ -214,7 +175,7 @@ SUPER allows users to load their own **.pcd** maps as simulation environments. T
 
 This enables seamless integration of custom maps for simulation. 
 
-## 2.5 Logging System
+## 2.4 Logging System
 
 SUPER includes a built-in logging system that records each run automatically. Logs are saved in:
 
@@ -238,11 +199,11 @@ For advanced usage, refer to:
 
 We are actively working on improving the logging system, and updates will be available soon! 
 
-## 2.6 Tuning
+## 2.5 Tuning
 
 To maximize performance, parameter tuning is crucial. The current version of SUPER has a large number of parameters (maybe TOOOO MUCH), requiring careful adjustment. Users can refer to the provided examples for guidance. We plan to provide detailed tuning instructions soon. In the meantime, feedback and issue reports are welcome.
 
-## 2.7 Notable Known Issues
+## 2.6 Notable Known Issues
 * [#10]: When using SUPER with your own simulator (e.g., Gazebo) or a LiDAR odometry system other than FAST-LIO2, ensure that the input point cloud is provided in the world frame. ROG-Map does not utilize `frame_id` or `/tf` information and assumes by default that all input point clouds are in the world frame rather than the body frame.
 
 # 3 TODO
@@ -252,7 +213,7 @@ To maximize performance, parameter tuning is crucial. The current version of SUP
 
   - **CIRI** - Generates safe flight corridors in C-space.
 
-  - **ROG-Map** - An efficient occupancy grid map supporting both ROS1 and ROS2.
+  - **ROG-Map** - An efficient occupancy grid map used by the ROS2 planning stack.
 * Introduce the hardware components of SUPER.
 * Detail the control module of SUPER.
 * Develop a tutorial.
