@@ -29,7 +29,7 @@
 
 
 #include <super_core/config.hpp>
-#include <ros_interface/ros1/ros1_interface.hpp>
+#include <ros_interface/ros_interface.hpp>
 #include <data_structure/base/trajectory.h>
 
 #include <data_structure/base/polytope.h>

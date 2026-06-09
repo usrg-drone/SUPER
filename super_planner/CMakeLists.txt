@@ -23,9 +23,13 @@ add_definitions(-DUSE_ROS2)
 string(TOUPPER $ENV{ROS_DISTRO} ROS_VERSION)
 message(STATUS "ROS version: ${ROS_VERSION}")
 
+# for CLION to search the package, user should change to his/her own relative location
+set(CMAKE_PREFIX_PATH ../../../install)
 include_directories(
         SYSTEM
         include
+        ../../../devel/include
+        ${catkin_INCLUDE_DIRS}
         ${Eigen3_INCLUDE_DIRS}
         ${PCL_INCLUDE_DIRS}
 )
@@ -37,11 +41,10 @@ find_package(rog_map REQUIRED)
 find_package(mars_quadrotor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(rosgraph_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
 
@@ -68,7 +71,6 @@ set(ros_libs
         tf2_ros
         nav_msgs
         geometry_msgs
-        rosgraph_msgs
         visualization_msgs
         rog_map
         tf2_ros
@@ -105,11 +107,20 @@ ament_target_dependencies(fsm_node PUBLIC
         ${ros_libs}
 )
 
+add_executable(goal_point_3d_node
+        Apps/goal_point_3d_node.cpp
+)
+ament_target_dependencies(goal_point_3d_node PUBLIC
+        rclcpp
+        geometry_msgs
+)
+
 #=================INSTALL all targets ============================#
 
 install(
         TARGETS
         fsm_node
+        goal_point_3d_node
         RUNTIME DESTINATION lib/${PROJECT_NAME}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib

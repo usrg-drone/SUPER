@@ -45,39 +45,39 @@ FsmRos2::Ptr fsm_ptr;
 #include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char** argv) {
-    // Initialize ROS2.
+    // 初始化ROS2
     rclcpp::init(argc, argv);
 
-    // Set the PCL log verbosity.
+    // 设置PCL日志级别（保持不变）
     pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
 
-    // Create the node, replacing the ROS1 NodeHandle.
+    // 创建节点（替换ROS1的NodeHandle）
     auto node = std::make_shared<rclcpp::Node>("fsm_node");
 
-    // Check whether simulation time is enabled.
+    // 检查是否使用仿真时间
     while (rclcpp::ok()) {
         bool use_sim_time;
 
-        // Get the parameter.
+        // 获取参数
         if (node->get_parameter("use_sim_time", use_sim_time)) {
             if (!use_sim_time) {
-                // If use_sim_time is false, print a message and exit the loop.
+                // 如果 use_sim_time 为 false，打印信息并退出循环
                 std::cout << " -- [Bench] Use sim time is false, begin replay." << std::endl;
                 break;
             } else {
-                // If use_sim_time is true, set it to false.
+                // 如果 use_sim_time 为 true，设置为 false
                 node->set_parameter(rclcpp::Parameter("use_sim_time", false));
             }
         } else {
-            // If the parameter does not exist, set it to false.
+            // 如果参数不存在，设置为 false
             node->set_parameter(rclcpp::Parameter("use_sim_time", false));
         }
 
-        // Sleep for 1 second.
+        // 休眠 1 秒
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    // Initialize the FSM.
+    // 初始化FSM
 
 #define CONFIG_FILE_DIR(name) (std::string(std::string(ROOT_DIR) + "config/"+(name)))
     auto fsm_ptr = std::make_shared<FsmRos2>();
@@ -87,14 +87,14 @@ int main(int argc, char** argv) {
     cfg_path = CONFIG_FILE_DIR(cfg_path);
     fsm_ptr->init(node,cfg_path);
 
-    // Print the startup message in ROS2 style.
+    // 打印启动信息（ROS2风格）
     RCLCPP_INFO(node->get_logger(), "\033[32m -- [Fsm-Test] Begin.\033[0m");
 
-    // Create the executor, replacing AsyncSpinner.
+    // 创建执行器（替换AsyncSpinner）
     rclcpp::executors::MultiThreadedExecutor executor;
     executor.add_node(node);
     executor.spin();
-    // Wait for shutdown.
+    // 等待关闭
     rclcpp::shutdown();
     return 0;
 }
