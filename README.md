@@ -16,7 +16,7 @@ The intended runtime data flow is:
 MID360 -> livox_ros_driver2 -> FAST_LIO_GPU -> /cloud_registered + /Odometry -> SUPER
 ```
 
-SUPER accepts a 3D goal through `/goal_point_3d` and converts it to the planner goal topic `/goal_pose`.
+SUPER's planner goal topic is `/goal_pose`. The `/goal_point_3d` topic is only an optional convenience input that is converted into `/goal_pose` by `goal_point_3d_node`.
 
 ## Platform
 
@@ -196,18 +196,29 @@ To disable RViz:
 ENABLE_RVIZ=0 ./scripts/start_super_mid360_tmux.sh
 ```
 
-## Sending A 3D Goal
+## Sending Goals
 
-Publish a 3D goal as `geometry_msgs/msg/PointStamped` on `/goal_point_3d`.
+SUPER consumes goals from `/goal_pose` as `geometry_msgs/msg/PoseStamped`. If your autonomy code can publish `PoseStamped`, publish directly to `/goal_pose`; you do not need the `/goal_point_3d` adapter.
 
-Example:
+Direct 3D goal example:
+
+```bash
+ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
+"{header: {frame_id: 'camera_init'}, pose: {position: {x: 5.0, y: 0.0, z: 1.5}, orientation: {w: 1.0}}}"
+```
+
+Use `frame_id: camera_init` unless you intentionally transform goals from another frame.
+
+The `/goal_point_3d` topic is optional. It exists for simple tools/scripts that only want to send a point and let `goal_point_3d_node` fill in the pose message.
+
+Optional point-input example:
 
 ```bash
 ros2 topic pub --once /goal_point_3d geometry_msgs/msg/PointStamped \
 "{header: {frame_id: 'camera_init'}, point: {x: 5.0, y: 0.0, z: 1.5}}"
 ```
 
-The adapter publishes `/goal_pose`, which SUPER consumes.
+The adapter republishes this as `/goal_pose`, which SUPER consumes.
 
 A 2D pose-style input is also wired in the tmux config through `/goal_pose_2d`, depending on the current node parameters in `scripts/super_mid360.smug.yml`.
 
@@ -224,7 +235,7 @@ fsm:
   click_height: 1.5
 ```
 
-Change `click_height` to set the flight/planning height used for RViz-style 2D goals. For true 3D goals on `/goal_point_3d`, publish the desired `z` in the message.
+Change `click_height` to set the flight/planning height used for RViz-style 2D goals. For true 3D goals, publish the desired `z` directly in `/goal_pose`, or publish it in `/goal_point_3d` if you are using the optional adapter.
 
 ## Rebuilding FAST_LIO_GPU Only
 
@@ -260,8 +271,11 @@ Inputs:
 ```text
 /livox/lidar
 /livox/imu
+/goal_pose
 /goal_point_3d
 ```
+
+`/goal_pose` is the planner input. `/goal_point_3d` is optional and only needed if you want the adapter node to convert a point into `/goal_pose`.
 
 FAST-LIO outputs:
 
@@ -308,5 +322,5 @@ If SUPER does not plan:
 
 - confirm `/cloud_registered` is publishing
 - confirm `/Odometry` is publishing
-- confirm `/goal_pose` is published after sending `/goal_point_3d`
+- confirm `/goal_pose` is published; if using `/goal_point_3d`, confirm the adapter republishes it to `/goal_pose`
 - check the `super` tmux pane logs
