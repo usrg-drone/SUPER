@@ -1,0 +1,63 @@
+session: super-mid360
+attach: true
+root: /home/usrga2rl/super_ws
+
+env:
+  ROS_DISTRO: humble
+  ROS_LOG_DIR: /home/usrga2rl/super_ws/log/ros2
+
+before_start:
+  - mkdir -p /home/usrga2rl/super_ws/log/ros2
+
+windows:
+  - name: livox
+    selected: true
+    layout: main-horizontal
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source /home/usrga2rl/super_ws/install/setup.bash
+      - ros2 run livox_ros_driver2 livox_ros_driver2_node --ros-args -r __node:=livox_lidar_publisher -p xfer_format:=1 -p multi_topic:=0 -p data_src:=0 -p publish_freq:=10.0 -p output_data_type:=0 -p frame_id:=livox_frame -p lvx_file_path:=/home/livox/livox_test.lvx -p user_config_path:=/home/usrga2rl/super_ws/src/livox_ros_driver2/config/MID360_config.json -p cmdline_input_bd_code:=livox0000000001
+
+  - name: fast-lio
+    layout: main-horizontal
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source /home/usrga2rl/super_ws/install/setup.bash
+      - ros2 run fast_lio fastlio_mapping --ros-args --params-file /home/usrga2rl/super_ws/install/fast_lio/share/fast_lio/config/mid360.yaml -p use_sim_time:=false
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source /home/usrga2rl/super_ws/install/setup.bash
+          - ros2 run fast_lio fastlio_path_publisher.py --ros-args -r __node:=fastlio_path_node -p odom_topic:=/Odometry -p use_sim_time:=false
+
+  - name: super
+    layout: main-horizontal
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source /home/usrga2rl/super_ws/install/setup.bash
+      - ros2 run super_planner fsm_node --ros-args -r __node:=fsm_node -p use_sim_time:=false -p config_name:=fast_lio_mid360_ros2.yaml
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source /home/usrga2rl/super_ws/install/setup.bash
+          - ros2 run super_planner goal_point_3d_node --ros-args -r __node:=goal_point_3d_node -p input_topic:=/goal_point_3d -p output_topic:=/goal_pose -p default_frame_id:=camera_init -p use_yaw:=false
+
+  - name: monitor
+    layout: tiled
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source /home/usrga2rl/super_ws/install/setup.bash
+      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/goal_point_3d|/goal_pose|/planning)" || true'
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source /home/usrga2rl/super_ws/install/setup.bash
+          - ros2 topic hz /cloud_registered
+      - type: vertical
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source /home/usrga2rl/super_ws/install/setup.bash
+          - ros2 topic hz /Odometry
