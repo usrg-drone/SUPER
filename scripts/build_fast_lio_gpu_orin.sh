@@ -14,6 +14,14 @@ BUILD_TYPE="${BUILD_TYPE:-Release}"
 CXX_RELEASE_FLAGS="${CXX_RELEASE_FLAGS:--O1}"
 JOBS="${JOBS:-1}"
 
+source_safe() {
+  # ROS setup scripts may reference unset vars; source them with nounset disabled.
+  set +u
+  # shellcheck disable=SC1090
+  source "$1"
+  set -u
+}
+
 if [[ ! -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]]; then
   echo "ERROR: /opt/ros/${ROS_DISTRO}/setup.bash not found" >&2
   exit 1
@@ -29,11 +37,11 @@ if [[ ! -x /usr/local/cuda/bin/nvcc ]]; then
   exit 1
 fi
 
-source "/opt/ros/${ROS_DISTRO}/setup.bash"
+source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
 
 # Source existing workspace overlays so livox_ros_driver2 and generated messages are visible.
 if [[ -f "${WORKSPACE}/install/setup.bash" ]]; then
-  source "${WORKSPACE}/install/setup.bash"
+  source_safe "${WORKSPACE}/install/setup.bash"
 fi
 
 export CUDACXX=/usr/local/cuda/bin/nvcc
@@ -51,10 +59,11 @@ cmake -S "${FAST_LIO_SRC}" -B "${BUILD_DIR}" \
   -DAMENT_CMAKE_SYMLINK_INSTALL=1 \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}"
 
-cmake --build "${BUILD_DIR}" --target fastlio_mapping -- -j"${JOBS}"
+# Build all targets so rosidl-generated artifacts are present for install.
+cmake --build "${BUILD_DIR}" -- -j"${JOBS}"
 cmake --install "${BUILD_DIR}"
 
-source "${WORKSPACE}/install/setup.bash"
+source_safe "${WORKSPACE}/install/setup.bash"
 ros2 pkg executables fast_lio
 
 echo

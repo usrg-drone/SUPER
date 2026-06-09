@@ -38,9 +38,23 @@ def generate_launch_description():
             condition=IfCondition(use_goal_point_3d),
             parameters=[
                 {"input_topic": "/goal_point_3d"},
+                {"input_pose_topic": "/goal_pose_2d"},
                 {"output_topic": "/goal_pose"},
                 {"default_frame_id": "world"},
                 {"use_yaw": False},
+            ],
+        ),
+        Node(
+            package="super_planner",
+            executable="poly_traj_viz_node",
+            name="poly_traj_viz_node",
+            output="screen",
+            parameters=[
+                {"input_topic": "/planning_cmd/poly_traj"},
+                {"path_topic": "/planning_cmd/poly_traj_path"},
+                {"marker_topic": "/planning_cmd/poly_traj_marker"},
+                {"output_frame_id": "camera_init"},
+                {"sample_dt": 0.05},
             ],
         ),
     ])

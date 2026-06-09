@@ -45,6 +45,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(mavros_msgs QUIET)
 find_package(PCL REQUIRED)
 find_package(pcl_conversions REQUIRED)
 
@@ -115,12 +116,41 @@ ament_target_dependencies(goal_point_3d_node PUBLIC
         geometry_msgs
 )
 
+add_executable(poly_traj_viz_node
+        Apps/poly_traj_viz_node.cpp
+)
+ament_target_dependencies(poly_traj_viz_node PUBLIC
+        rclcpp
+        mars_quadrotor_msgs
+        nav_msgs
+        geometry_msgs
+        visualization_msgs
+)
+
+if (mavros_msgs_FOUND)
+        add_executable(mavros_offboard_bridge_node
+                Apps/mavros_offboard_bridge_node.cpp
+        )
+        ament_target_dependencies(mavros_offboard_bridge_node PUBLIC
+                rclcpp
+                geometry_msgs
+                mars_quadrotor_msgs
+                nav_msgs
+                mavros_msgs
+        )
+        set(mavros_offboard_bridge_target mavros_offboard_bridge_node)
+else ()
+        message(WARNING "mavros_msgs not found; mavros_offboard_bridge_node will not be built.")
+endif ()
+
 #=================INSTALL all targets ============================#
 
 install(
         TARGETS
         fsm_node
         goal_point_3d_node
+        poly_traj_viz_node
+        ${mavros_offboard_bridge_target}
         RUNTIME DESTINATION lib/${PROJECT_NAME}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
@@ -139,6 +169,7 @@ install(DIRECTORY include/
 install(DIRECTORY
         launch
         config
+        rviz
         DESTINATION share/${PROJECT_NAME}/
 )
 

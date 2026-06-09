@@ -1,4 +1,4 @@
 <launch>
-    <arg name="rviz_config" default="$(find super_planner)/rviz/bench.rviz" />
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" />
+    <arg name="rviz_config" default="$(find-pkg-share super_planner)/rviz/mid360_goal_path.rviz" />
+    <node name="rviz2" pkg="rviz2" exec="rviz2" args="-d $(var rviz_config)" />
 </launch>

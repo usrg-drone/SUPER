@@ -24,6 +24,14 @@ info() {
   printf '\n==> %s\n' "$*"
 }
 
+source_safe() {
+  # ROS setup scripts may reference unset vars; source them with nounset disabled.
+  set +u
+  # shellcheck disable=SC1090
+  source "$1"
+  set -u
+}
+
 info "Checking prerequisites"
 [[ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]] || {
   echo "ERROR: ROS 2 ${ROS_DISTRO} not found at /opt/ros/${ROS_DISTRO}/setup.bash" >&2
@@ -73,7 +81,7 @@ info "Patching livox_ros_driver2 SDK path for this workspace"
 perl -0pi -e "s#/home/[^\n\" ]*/super_ws/src/Livox-SDK2#${SRC_DIR}/Livox-SDK2#g; s#/tmp/Livox-SDK2#${SRC_DIR}/Livox-SDK2#g" livox_ros_driver2/CMakeLists.txt
 
 info "Sourcing ROS"
-source "/opt/ros/${ROS_DISTRO}/setup.bash"
+source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
 export CUDACXX=/usr/local/cuda/bin/nvcc
 
 info "Building core ROS packages"
@@ -86,12 +94,12 @@ colcon build --symlink-install \
     -DDISTRO_ROS="${ROS_DISTRO}"
 
 info "Building FAST_LIO_GPU with CUDA enabled"
-source "${WORKSPACE}/install/setup.bash"
+source_safe "${WORKSPACE}/install/setup.bash"
 CUDA_ARCH="${CUDA_ARCH}" JOBS="${JOBS}" WORKSPACE="${WORKSPACE}" "${SCRIPT_DIR}/build_fast_lio_gpu_orin.sh"
 
 info "Verifying installed executables"
-source "/opt/ros/${ROS_DISTRO}/setup.bash"
-source "${WORKSPACE}/install/setup.bash"
+source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
+source_safe "${WORKSPACE}/install/setup.bash"
 ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
