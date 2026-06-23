@@ -245,16 +245,22 @@ else(ROS_EDITION STREQUAL "ROS2")
     LIBRARY_NAME ${PROJECT_NAME}
   )
 
+  set(LIVOX_LIDAR_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../Livox-SDK2" CACHE PATH "Livox SDK2 root")
+  unset(LIVOX_LIDAR_SDK_LIBRARY CACHE)
+  unset(LIVOX_LIDAR_SDK_INCLUDE_DIR CACHE)
+
   ## make sure the livox_lidar_sdk_shared library is installed
   find_library(LIVOX_LIDAR_SDK_LIBRARY
     NAMES livox_lidar_sdk_shared
-    PATHS /home/usrg/workspace/super_ws/src/Livox-SDK2/build/sdk_core /usr/local/lib
+    PATHS "${LIVOX_LIDAR_SDK_ROOT}/build/sdk_core"
+    NO_DEFAULT_PATH
     REQUIRED)
 
   ##
   find_path(LIVOX_LIDAR_SDK_INCLUDE_DIR
     NAMES "livox_lidar_api.h" "livox_lidar_def.h"
-    PATHS /home/usrg/workspace/super_ws/src/Livox-SDK2/include /usr/local/include
+    PATHS "${LIVOX_LIDAR_SDK_ROOT}/include"
+    NO_DEFAULT_PATH
     REQUIRED)
 
   ## PCL library

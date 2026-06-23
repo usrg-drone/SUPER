@@ -56,7 +56,7 @@ The script will:
 
 - build `Livox-SDK2` locally
 - prepare `livox_ros_driver2` for ROS 2
-- patch `livox_ros_driver2` to use the local SDK path
+- configure `livox_ros_driver2` to use the local `Livox-SDK2` at a portable relative path (no hardcoded workspace path required)
 - build `mars_quadrotor_msgs`, `rog_map`, `super_planner`, and `livox_ros_driver2`
 - build `FAST_LIO_GPU` with CUDA enabled for Orin architecture `87`
 - verify the installed ROS executables
