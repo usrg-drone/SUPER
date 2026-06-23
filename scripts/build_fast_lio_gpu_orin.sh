@@ -66,11 +66,11 @@ cmake --install "${BUILD_DIR}"
 source_safe "${WORKSPACE}/install/setup.bash"
 # fast_lio is installed via cmake (not colcon), so colcon's setup.bash does not chain
 # through it. Source the package's own local_setup.bash to register it.
-source_safe "${INSTALL_PREFIX}/local_setup.bash"
+source_safe "${INSTALL_PREFIX}/share/fast_lio/local_setup.bash"
 ros2 pkg executables fast_lio
 
 echo
 echo "FAST_LIO_GPU CUDA build complete."
 echo "Source the workspace and fast_lio before running:"
 echo "  source ${WORKSPACE}/install/setup.bash"
-echo "  source ${WORKSPACE}/install/fast_lio/local_setup.bash"
+echo "  source ${WORKSPACE}/install/fast_lio/share/fast_lio/local_setup.bash"

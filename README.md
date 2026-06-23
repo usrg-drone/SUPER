@@ -117,7 +117,7 @@ Source the workspace:
 ```bash
 source /opt/ros/humble/setup.bash
 source ~/super_ws/install/setup.bash
-source ~/super_ws/install/fast_lio/local_setup.bash
+source ~/super_ws/install/fast_lio/share/fast_lio/local_setup.bash
 ```
 
 `fast_lio` is built via cmake rather than colcon, so it is not automatically chained by `install/setup.bash`. The third line registers it with the ROS 2 package index.
