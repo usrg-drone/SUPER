@@ -123,6 +123,30 @@ ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
 
+info "Installing smug system-wide"
+sudo install -m 755 "${SCRIPT_DIR}/bin/smug" /usr/local/bin/smug
+echo "smug installed to /usr/local/bin/smug"
+
+info "Installing smug bash completion"
+sudo install -m 644 "${SCRIPT_DIR}/smug_completion.bash" /etc/bash_completion.d/smug
+echo "completion installed to /etc/bash_completion.d/smug"
+
+info "Rendering smug config for 'smug start superplanner'"
+mkdir -p "${HOME}/.config/smug"
+_rviz_config="${SRC_DIR}/super_planner/rviz/mid360_goal_path.rviz"
+sed \
+  -e "s#/home/usrga2rl/super_ws#${WORKSPACE}#g" \
+  -e "s#/home/jetson/super_ws#${WORKSPACE}#g" \
+  -e "s#/home/usrg/workspace/super_ws#${WORKSPACE}#g" \
+  -e "s#__WORKSPACE__#${WORKSPACE}#g" \
+  -e "s#__ENABLE_RVIZ__#1#g" \
+  -e "s#__RVIZ_CONFIG__#${_rviz_config}#g" \
+  "${SCRIPT_DIR}/super_mid360.smug.yml" \
+  > "${HOME}/.config/smug/superplanner.yml"
+unset _rviz_config
+echo "config written to ${HOME}/.config/smug/superplanner.yml"
+echo "run: smug start superplanner"
+
 _zenoh_note=""
 if [[ "${USE_ZENOH}" == "1" ]]; then
   _zenoh_note="
@@ -140,7 +164,8 @@ Before running:
      source ${WORKSPACE}/install/setup.bash
      source ${WORKSPACE}/install/fast_lio/share/fast_lio/local_setup.bash${_zenoh_note}
   3. Start the tmux stack:
-     ${SCRIPT_DIR}/start_super_mid360_tmux.sh
+     smug start superplanner
+     (or: ${SCRIPT_DIR}/start_super_mid360_tmux.sh)
 
 MSG
 unset _zenoh_note

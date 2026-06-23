@@ -125,15 +125,24 @@ source ~/super_ws/install/fast_lio/share/fast_lio/local_setup.bash
 Start the tmux/smug runtime:
 
 ```bash
-cd ~/super_ws/src
-./scripts/start_super_mid360_tmux.sh
+smug start superplanner
 ```
+
+Tab-completion for `smug` project names is installed automatically by `setup_fresh_orin.sh`. Restart your shell (or `source /etc/bash_completion.d/smug`) if completion is not active yet.
 
 Stop it:
 
 ```bash
-cd ~/super_ws/src
-./scripts/stop_super_mid360_tmux.sh
+smug stop superplanner
+```
+
+The setup script installs `smug` to `/usr/local/bin/` and writes the rendered config to `~/.config/smug/superplanner.yml`. If you move the workspace, re-run `setup_fresh_orin.sh` (or edit that file directly) to update the path.
+
+The wrapper scripts remain available if you need to override RViz options at start time:
+
+```bash
+ENABLE_RVIZ=1 RVIZ_CONFIG=~/super_ws/src/super_planner/rviz/mid360_goal_path.rviz \
+  ./scripts/start_super_mid360_tmux.sh
 ```
 
 The tmux session starts separate windows/panes for:
@@ -193,16 +202,12 @@ ros2 run tf2_tools view_frames
 
 ## RViz
 
-The tmux config has RViz support. You can override it when starting:
+RViz is enabled by default in the rendered smug config. To change the setting, edit `~/.config/smug/superplanner.yml` and set `ENABLE_RVIZ` in the `env` block, or re-render using the wrapper script:
 
 ```bash
 ENABLE_RVIZ=1 RVIZ_CONFIG=~/super_ws/src/super_planner/rviz/mid360_goal_path.rviz \
   ./scripts/start_super_mid360_tmux.sh
-```
 
-To disable RViz:
-
-```bash
 ENABLE_RVIZ=0 ./scripts/start_super_mid360_tmux.sh
 ```
 
