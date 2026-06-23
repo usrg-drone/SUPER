@@ -12,6 +12,7 @@ WORKSPACE="${WORKSPACE:-$(cd "${SRC_DIR}/.." && pwd)}"
 ROS_DISTRO="${ROS_DISTRO:-humble}"
 CUDA_ARCH="${CUDA_ARCH:-87}"
 JOBS="${JOBS:-1}"
+USE_ZENOH="${USE_ZENOH:-1}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -52,6 +53,7 @@ echo "SRC_DIR=${SRC_DIR}"
 echo "ROS_DISTRO=${ROS_DISTRO}"
 echo "CUDA_ARCH=${CUDA_ARCH}"
 echo "JOBS=${JOBS}"
+echo "USE_ZENOH=${USE_ZENOH}"
 
 cd "${SRC_DIR}"
 
@@ -80,6 +82,20 @@ cp -a livox_ros_driver2/launch_ROS2 livox_ros_driver2/launch
 info "Patching livox_ros_driver2 SDK path for this workspace"
 perl -0pi -e "s#/home/[^\n\" ]*/super_ws/src/Livox-SDK2#${SRC_DIR}/Livox-SDK2#g; s#/tmp/Livox-SDK2#${SRC_DIR}/Livox-SDK2#g" livox_ros_driver2/CMakeLists.txt
 
+if [[ "${USE_ZENOH}" == "1" ]]; then
+  info "Checking rmw_zenoh_cpp (USE_ZENOH=1)"
+  _zenoh_pkg="ros-${ROS_DISTRO}-rmw-zenoh-cpp"
+  if dpkg -s "${_zenoh_pkg}" >/dev/null 2>&1; then
+    echo "${_zenoh_pkg} already installed"
+  else
+    echo "Installing ${_zenoh_pkg} ..."
+    sudo apt install -y "${_zenoh_pkg}"
+  fi
+  unset _zenoh_pkg
+else
+  echo "Skipping rmw_zenoh_cpp install (USE_ZENOH=0)"
+fi
+
 info "Sourcing ROS"
 source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
 export CUDACXX=/usr/local/cuda/bin/nvcc
@@ -107,6 +123,12 @@ ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
 
+_zenoh_note=""
+if [[ "${USE_ZENOH}" == "1" ]]; then
+  _zenoh_note="
+     export RMW_IMPLEMENTATION=rmw_zenoh_cpp"
+fi
+
 cat <<MSG
 
 Fresh Orin setup complete.
@@ -116,8 +138,9 @@ Before running:
      ${SRC_DIR}/livox_ros_driver2/config/MID360_config.json
   2. Source the workspace:
      source ${WORKSPACE}/install/setup.bash
-     source ${WORKSPACE}/install/fast_lio/local_setup.bash
+     source ${WORKSPACE}/install/fast_lio/local_setup.bash${_zenoh_note}
   3. Start the tmux stack:
      ${SCRIPT_DIR}/start_super_mid360_tmux.sh
 
 MSG
+unset _zenoh_note
