@@ -31,12 +31,14 @@ windows:
     commands:
       - source /opt/ros/humble/setup.bash
       - source __WORKSPACE__/install/setup.bash
+      - source __WORKSPACE__/install/fast_lio/local_setup.bash
       - ros2 run fast_lio fastlio_mapping --ros-args --params-file __WORKSPACE__/install/fast_lio/share/fast_lio/config/mid360.yaml -p use_sim_time:=false
     panes:
       - type: horizontal
         commands:
           - source /opt/ros/humble/setup.bash
           - source __WORKSPACE__/install/setup.bash
+          - source __WORKSPACE__/install/fast_lio/local_setup.bash
           - ros2 run fast_lio fastlio_path_publisher.py --ros-args -r __node:=fastlio_path_node -p odom_topic:=/Odometry -p use_sim_time:=false
       - type: horizontal
         commands:

@@ -100,6 +100,9 @@ CUDA_ARCH="${CUDA_ARCH}" JOBS="${JOBS}" WORKSPACE="${WORKSPACE}" "${SCRIPT_DIR}/
 info "Verifying installed executables"
 source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
 source_safe "${WORKSPACE}/install/setup.bash"
+# fast_lio is installed via cmake, not colcon, so it is not chained by the workspace
+# setup.bash. Source its own local_setup.bash so ros2 pkg can find it.
+source_safe "${WORKSPACE}/install/fast_lio/local_setup.bash"
 ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
@@ -113,6 +116,7 @@ Before running:
      ${SRC_DIR}/livox_ros_driver2/config/MID360_config.json
   2. Source the workspace:
      source ${WORKSPACE}/install/setup.bash
+     source ${WORKSPACE}/install/fast_lio/local_setup.bash
   3. Start the tmux stack:
      ${SCRIPT_DIR}/start_super_mid360_tmux.sh
 
