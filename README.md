@@ -240,6 +240,31 @@ Useful topics to add in Lichtblick include `/cloud_registered`, `/Odometry`, `/f
 
 SC-PGO consumes `/cloud_registered_body`, not `/cloud_registered`. FAST-LIO publishes `/cloud_registered` already transformed into `camera_init`; the pose-graph backend needs the local/body-frame scan so it can apply the optimized pose exactly once when building `/slam/optimized_map`.
 
+## SLAM Backend
+
+SC-PGO is launched as the `aloam_velodyne` executable `alaserPGO`:
+
+```bash
+ros2 launch aloam_velodyne fast_lio_slam.launch.py \
+  params_file:=~/super_ws/install/aloam_velodyne/share/aloam_velodyne/config/fast_lio_slam.yaml
+```
+
+The launch file prepends `install/gtsam/lib` to `LD_LIBRARY_PATH` and respawns the backend if it exits. The executable also has an install RPATH pointing at the workspace GTSAM install, so `libgtsam.so` and `libmetis-gtsam.so` should resolve without setting global linker paths.
+
+Topic roles:
+
+```text
+/cloud_registered       FAST-LIO world-frame registered scan, for SUPER/RViz
+/cloud_registered_body  FAST-LIO body-frame local scan, for SC-PGO
+/Odometry               FAST-LIO odometry in camera_init
+/Laser_map              FAST-LIO frontend accumulated map
+/slam/optimized_odom    SC-PGO latest optimized pose
+/slam/optimized_path    SC-PGO optimized trajectory
+/slam/optimized_map     SC-PGO optimized keyframe map
+```
+
+If `/slam/optimized_map` appears tilted, doubled, or badly overlapping, first confirm `cloud_topic` in `fast_lio_slam.yaml` is `/cloud_registered_body`. Feeding `/cloud_registered` into SC-PGO double-applies the FAST-LIO pose because that topic is already in `camera_init`.
+
 ## Sending Goals
 
 SUPER consumes goals from `/goal_pose` as `geometry_msgs/msg/PoseStamped`. If your autonomy code can publish `PoseStamped`, publish directly to `/goal_pose`; you do not need the `/goal_point_3d` adapter.
@@ -325,7 +350,19 @@ FAST-LIO outputs:
 
 ```text
 /cloud_registered
+/cloud_registered_body
 /Odometry
+/Laser_map
+```
+
+SC-PGO outputs:
+
+```text
+/slam/optimized_odom
+/slam/optimized_path
+/slam/optimized_map
+/slam/loop_scan_local
+/slam/loop_submap_local
 ```
 
 SUPER outputs:
@@ -368,3 +405,10 @@ If SUPER does not plan:
 - confirm `/Odometry` is publishing
 - confirm `/goal_pose` is published; if using `/goal_point_3d`, confirm the adapter republishes it to `/goal_pose`
 - check the `super` tmux pane logs
+
+If the SLAM backend dies:
+
+- check the `slam` tmux pane and the newest `~/super_ws/log/ros2/*/launch.log`
+- an exit code `127` usually means a shared library path problem; confirm `install/gtsam/lib/libmetis-gtsam.so` exists
+- confirm `/cloud_registered_body` and `/Odometry` are publishing before expecting optimized map output
+- restart with `smug stop superplanner && smug start superplanner` after rebuilding `aloam_velodyne`
