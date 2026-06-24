@@ -6,6 +6,7 @@ This branch packages a ROS 2 Humble runtime stack for a Jetson Orin NX 16 GB usi
 - `mars_quadrotor_msgs`: extracted message definitions required by SUPER.
 - `rog_map`: local map backend used by SUPER.
 - `FAST_LIO_GPU`: CUDA-enabled FAST-LIO for lidar-inertial odometry.
+- `SC-PGO`: GTSAM/Scan Context backend for FAST-LIO SLAM loop closure and optimized maps.
 - `Livox-SDK2`: local SDK source used by `livox_ros_driver2`.
 - `livox_ros_driver2`: ROS 2 Livox driver for MID360 custom messages.
 - `scripts/`: build/setup helpers and a `smug` tmux runtime configuration.
@@ -14,6 +15,10 @@ The intended runtime data flow is:
 
 ```text
 MID360 -> livox_ros_driver2 -> FAST_LIO_GPU -> /cloud_registered + /Odometry -> SUPER
+                                                        |
+                                                        v
+                                                     /cloud_registered_body + /Odometry
+                                                        -> SC-PGO -> /slam/optimized_path + /slam/optimized_map
 ```
 
 SUPER's planner goal topic is `/goal_pose`. The `/goal_point_3d` topic is only an optional convenience input that is converted into `/goal_pose` by `goal_point_3d_node`.
@@ -58,7 +63,11 @@ The script will:
 - prepare `livox_ros_driver2` for ROS 2
 - configure `livox_ros_driver2` to use the local `Livox-SDK2` at a portable relative path (no hardcoded workspace path required)
 - install `ros-humble-rmw-zenoh-cpp` if not already present (controlled by `USE_ZENOH`, default `1`)
+- install `ros-humble-foxglove-bridge` for Lichtblick/Foxglove WebSocket visualization
+- install GTSAM source-build dependencies: Eigen, Boost, and TBB development packages
+- build GTSAM 4.2.0 from official source into `install/gtsam` for the SC-PGO pose-graph backend
 - build `mars_quadrotor_msgs`, `rog_map`, `super_planner`, and `livox_ros_driver2`
+- build `SC-PGO` as the `aloam_velodyne` package
 - build `FAST_LIO_GPU` with CUDA enabled for Orin architecture `87`
 - verify the installed ROS executables
 
@@ -151,6 +160,8 @@ The tmux session starts separate windows/panes for:
 - `livox_ros_driver2_node`
 - `fastlio_mapping`
 - FAST-LIO path publisher
+- SC-PGO FAST_LIO_SLAM backend
+- Foxglove bridge on `ws://<robot-ip>:8765` for Lichtblick/Foxglove
 - SUPER `fsm_node`
 - 3D goal adapter
 - trajectory visualization helper
@@ -210,6 +221,24 @@ ENABLE_RVIZ=1 RVIZ_CONFIG=~/super_ws/src/super_planner/rviz/mid360_goal_path.rvi
 
 ENABLE_RVIZ=0 ./scripts/start_super_mid360_tmux.sh
 ```
+
+## Lichtblick / Foxglove
+
+The smug runtime starts `foxglove_bridge` on port `8765`:
+
+```bash
+ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=0.0.0.0 port:=8765
+```
+
+From Lichtblick, add a Foxglove WebSocket connection:
+
+```text
+ws://<robot-ip>:8765
+```
+
+Useful topics to add in Lichtblick include `/cloud_registered`, `/Odometry`, `/fastlio/path`, `/slam/optimized_map`, `/slam/optimized_path`, `/slam/optimized_odom`, and the SUPER `/planning_cmd/*` visualization topics.
+
+SC-PGO consumes `/cloud_registered_body`, not `/cloud_registered`. FAST-LIO publishes `/cloud_registered` already transformed into `camera_init`; the pose-graph backend needs the local/body-frame scan so it can apply the optimized pose exactly once when building `/slam/optimized_map`.
 
 ## Sending Goals
 

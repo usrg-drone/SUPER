@@ -96,14 +96,49 @@ else
   echo "Skipping rmw_zenoh_cpp install (USE_ZENOH=0)"
 fi
 
+info "Checking Foxglove bridge for Lichtblick/Foxglove WebSocket visualization"
+_foxglove_pkg="ros-${ROS_DISTRO}-foxglove-bridge"
+if dpkg -s "${_foxglove_pkg}" >/dev/null 2>&1; then
+  echo "${_foxglove_pkg} already installed"
+else
+  echo "Installing ${_foxglove_pkg} ..."
+  sudo apt install -y "${_foxglove_pkg}"
+fi
+unset _foxglove_pkg
+
 info "Sourcing ROS"
 source_safe "/opt/ros/${ROS_DISTRO}/setup.bash"
 export CUDACXX=/usr/local/cuda/bin/nvcc
 
+info "Installing GTSAM source-build dependencies"
+sudo apt install -y libeigen3-dev libboost-all-dev libtbb-dev
+
+info "Building GTSAM from source for SC-PGO"
+if [[ ! -d "${SRC_DIR}/gtsam" ]]; then
+  git clone --depth 1 --branch 4.2.0 https://github.com/borglab/gtsam.git "${SRC_DIR}/gtsam"
+fi
+gtsam_cmake_args=(
+  -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_INSTALL_PREFIX="${WORKSPACE}/install/gtsam"
+  -DGTSAM_BUILD_TESTS=OFF
+  -DGTSAM_BUILD_EXAMPLES_ALWAYS=OFF
+  -DGTSAM_BUILD_TIMING_ALWAYS=OFF
+  -DGTSAM_BUILD_UNSTABLE=OFF
+  -DGTSAM_BUILD_PYTHON=OFF
+  -DGTSAM_USE_SYSTEM_EIGEN=ON
+  -DGTSAM_WITH_TBB=ON
+  '-DCMAKE_INSTALL_RPATH=$ORIGIN'
+)
+cmake -S "${SRC_DIR}/gtsam" -B "${WORKSPACE}/build/gtsam_source" "${gtsam_cmake_args[@]}"
+unset gtsam_cmake_args
+cmake --build "${WORKSPACE}/build/gtsam_source" --target install -- -j"${JOBS}"
+export CMAKE_PREFIX_PATH="${WORKSPACE}/install/gtsam:${CMAKE_PREFIX_PATH:-}"
+export LD_LIBRARY_PATH="${WORKSPACE}/install/gtsam/lib:${LD_LIBRARY_PATH:-}"
+
 info "Building core ROS packages"
 cd "${WORKSPACE}"
 colcon build --symlink-install \
-  --packages-select mars_quadrotor_msgs rog_map super_planner livox_ros_driver2 \
+  --packages-select mars_quadrotor_msgs rog_map super_planner livox_ros_driver2 aloam_velodyne \
   --cmake-args \
     -DCMAKE_BUILD_TYPE=Release \
     -DROS_EDITION=ROS2 \
@@ -122,6 +157,8 @@ source_safe "${WORKSPACE}/install/fast_lio/share/fast_lio/local_setup.bash"
 ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
+ros2 pkg executables aloam_velodyne
+ros2 pkg executables foxglove_bridge
 
 info "Installing smug system-wide"
 sudo install -m 755 "${SCRIPT_DIR}/bin/smug" /usr/local/bin/smug

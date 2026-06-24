@@ -1,0 +1,14 @@
+build/
+install/
+log/
+
+gtsam/
+
+**/__pycache__/
+*.pyc
+
+rog_map/log/*.csv
+super_planner/log/*.csv
+super_planner/log/cmd_logs/*.csv
+
+SC-PGO/utils/sample_data/

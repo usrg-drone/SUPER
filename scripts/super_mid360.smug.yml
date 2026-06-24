@@ -46,6 +46,18 @@ windows:
           - source __WORKSPACE__/install/setup.bash
           - ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id camera_init --child-frame-id world
 
+  - name: slam
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 launch aloam_velodyne fast_lio_slam.launch.py params_file:=__WORKSPACE__/install/aloam_velodyne/share/aloam_velodyne/config/fast_lio_slam.yaml
+
+  - name: foxglove
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=0.0.0.0 port:=8765
+
   - name: super
     selected: true
     layout: tiled
@@ -70,7 +82,7 @@ windows:
     commands:
       - source /opt/ros/humble/setup.bash
       - source __WORKSPACE__/install/setup.bash
-      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/goal_point_3d|/goal_pose_2d|/goal_pose|/planning|/planning_cmd)" || true'
+      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/slam/optimized|/slam/loop|/foxglove_bridge|/goal_point_3d|/goal_pose_2d|/goal_pose|/planning|/planning_cmd)" || true'
     panes:
       - type: horizontal
         commands:
@@ -82,6 +94,11 @@ windows:
           - source /opt/ros/humble/setup.bash
           - source __WORKSPACE__/install/setup.bash
           - ros2 topic hz /Odometry
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 topic hz /slam/optimized_odom
 
   - name: rviz
     commands:

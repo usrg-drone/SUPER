@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>aloam_velodyne</name>
+  <version>0.1.0</version>
+
+  <description>ROS2 Scan Context pose-graph backend for FAST-LIO SLAM.</description>
+
+  <maintainer email="qintonguav@gmail.com">qintong</maintainer>
+  <license>BSD</license>
+
+  <author email="zhangji@cmu.edu">Ji Zhang</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>pcl_conversions</depend>
+  <depend>cv_bridge</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

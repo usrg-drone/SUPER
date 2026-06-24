@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+    odom_topic: "/Odometry"
+    cloud_topic: "/cloud_registered_body"
+    gps_topic: "/gps/fix"
+    use_gps: false
+
+    odom_frame: "camera_init"
+    pgo_frame: "aft_pgo"
+
+    save_directory: "/tmp/fast_lio_slam/"
+    keyframe_meter_gap: 2.0
+    keyframe_deg_gap: 10.0
+    sc_dist_thres: 0.2
+    sc_max_radius: 80.0
+    mapviz_filter_size: 0.4
