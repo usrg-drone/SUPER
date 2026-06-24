@@ -291,20 +291,20 @@ The adapter republishes this as `/goal_pose`, which SUPER consumes.
 
 A 2D pose-style input is also wired in the tmux config through `/goal_pose_2d`, depending on the current node parameters in `scripts/super_mid360.smug.yml`.
 
-For 2D goals, SUPER uses the fixed height parameter in:
+The MID360 config preserves incoming 3D goal height:
 
 ```text
 super_planner/config/fast_lio_mid360_ros2.yaml
 ```
 
-The parameter is:
+The parameter is set below `-5`:
 
 ```yaml
 fsm:
-  click_height: 1.5
+  click_height: -10.0
 ```
 
-Change `click_height` to set the flight/planning height used for RViz-style 2D goals. For true 3D goals, publish the desired `z` directly in `/goal_pose`, or publish it in `/goal_point_3d` if you are using the optional adapter.
+Set `click_height` to a positive flight height, such as `1.5`, only if you want every incoming goal to be flattened to that fixed z value.
 
 ## Rebuilding FAST_LIO_GPU Only
 

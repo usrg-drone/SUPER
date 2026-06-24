@@ -1,8 +1,8 @@
 fsm:
   click_goal_en: true
   click_goal_topic: "/goal_pose"
-  # RViz 2D goals are planned at this fixed flight height.
-  click_height: 1.5
+  # Set below -5 to preserve incoming 3D goal z instead of flattening goals to a click height.
+  click_height: -10.0
   click_yaw_en: false
   replan_rate: 15.0
   cmd_topic: "/planning/pos_cmd"
