@@ -12,6 +12,7 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from rclpy.time import Time
+from std_srvs.srv import SetBool
 
 
 Vector3 = Tuple[float, float, float]
@@ -147,6 +148,13 @@ class SuperPx4MavrosOffboardBridge(Node):
         self.arming_client = self.create_client(CommandBool, self.arming_service_name)
         self.set_mode_client = self.create_client(SetMode, self.set_mode_service_name)
 
+        self.create_service(SetBool, "~/set_arm", self.set_arm_service_callback)
+        self.create_service(SetBool, "~/set_offboard_mode", self.set_offboard_mode_service_callback)
+        self.create_service(SetBool, "~/set_hold_position", self.set_hold_position_service_callback)
+        self.create_service(SetBool, "~/set_planner_enabled", self.set_planner_enabled_service_callback)
+        self.create_service(SetBool, "~/set_publish_vision_pose", self.set_publish_vision_pose_service_callback)
+        self.create_service(SetBool, "~/set_publish_setpoints", self.set_publish_setpoints_service_callback)
+
         period = 1.0 / max(1.0, self.timer_rate_hz)
         self.timer = self.create_timer(period, self.timer_callback)
         self.add_on_set_parameters_callback(self.parameters_callback)
@@ -191,6 +199,34 @@ class SuperPx4MavrosOffboardBridge(Node):
         if old_arm != self.arm:
             self.request_arm(self.arm)
         return SetParametersResult(successful=True)
+
+    def set_bool_parameter(self, name: str, value: bool) -> bool:
+        results = self.set_parameters([Parameter(name, Parameter.Type.BOOL, bool(value))])
+        return bool(results and results[0].successful)
+
+    def set_bool_service_response(self, response, name: str, value: bool):
+        response.success = self.set_bool_parameter(name, value)
+        state = "enabled" if value else "disabled"
+        response.message = "%s %s" % (name, state) if response.success else "Failed to set %s" % name
+        return response
+
+    def set_arm_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "arm", request.data)
+
+    def set_offboard_mode_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "offboard_mode", request.data)
+
+    def set_hold_position_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "hold_position", request.data)
+
+    def set_planner_enabled_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "planner_enabled", request.data)
+
+    def set_publish_vision_pose_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "publish_vision_pose", request.data)
+
+    def set_publish_setpoints_service_callback(self, request, response):
+        return self.set_bool_service_response(response, "publish_setpoints", request.data)
 
     def state_callback(self, msg: State) -> None:
         self.state = msg

@@ -20,4 +20,15 @@ ROS 2 Humble `rclpy` bridge for sending FAST-LIO external vision and SUPER plann
 - `publish_vision_pose`: enable external vision pose publishing.
 - `publish_setpoints`: enable MAVROS setpoint publishing.
 
+The boolean controls are also exposed as `std_srvs/srv/SetBool` services:
+
+```bash
+ros2 service call /super_px4_mavros_offboard_bridge/set_arm std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_offboard_mode std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_planner_enabled std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_hold_position std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_publish_vision_pose std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_publish_setpoints std_srvs/srv/SetBool "{data: true}"
+```
+
 The external vision relay keeps a continuous output pose by applying an internal transform offset when incoming SLAM odometry has a large discontinuity.

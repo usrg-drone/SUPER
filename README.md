@@ -260,7 +260,16 @@ The `super_px4_mavros_offboard_bridge` package is started by the smug session in
 
 The external vision relay publishes FAST-LIO odometry as a pose stream for PX4. If the SLAM/backend pose has a large discontinuity, the bridge updates an internal offset so the pose sent to PX4 remains continuous instead of jumping with the corrected map.
 
-The bridge has live ROS parameters for field control:
+The bridge exposes `std_srvs/srv/SetBool` services for field control:
+
+```bash
+ros2 service call /super_px4_mavros_offboard_bridge/set_arm std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_offboard_mode std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_planner_enabled std_srvs/srv/SetBool "{data: true}"
+ros2 service call /super_px4_mavros_offboard_bridge/set_hold_position std_srvs/srv/SetBool "{data: true}"
+```
+
+It also keeps live ROS parameters for tuning and compatibility:
 
 ```bash
 ros2 param set /super_px4_mavros_offboard_bridge arm true
