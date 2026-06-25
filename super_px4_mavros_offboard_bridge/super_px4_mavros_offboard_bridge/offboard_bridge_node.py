@@ -117,6 +117,7 @@ class SuperPx4MavrosOffboardBridge(Node):
         self.last_mode_request_time: Optional[Time] = None
         self.last_arm_request: Optional[bool] = None
         self.last_arm_request_time: Optional[Time] = None
+        self.suppress_arm_request = False
 
         self.offset_t: Vector3 = (0.0, 0.0, 0.0)
         self.offset_q: Quaternion = (0.0, 0.0, 0.0, 1.0)
@@ -196,7 +197,7 @@ class SuperPx4MavrosOffboardBridge(Node):
             self.hold_setpoint = None
         if abs(old_takeoff_altitude - self.takeoff_altitude) > 1.0e-6:
             self.hold_setpoint = None
-        if old_arm != self.arm:
+        if old_arm != self.arm and not self.suppress_arm_request:
             self.request_arm(self.arm)
         return SetParametersResult(successful=True)
 
@@ -229,7 +230,42 @@ class SuperPx4MavrosOffboardBridge(Node):
         return self.set_bool_service_response(response, "publish_setpoints", request.data)
 
     def state_callback(self, msg: State) -> None:
+        was_armed = self.state is not None and self.state.armed
+        was_offboard = self.state is not None and self.state.mode == "OFFBOARD"
         self.state = msg
+
+        if was_armed and not msg.armed:
+            if self.arm or self.offboard_mode or self.planner_enabled or self.hold_position:
+                self.clear_control_intent("PX4 reported disarmed", clear_arm=True)
+            return
+
+        if not msg.armed:
+            if self.offboard_mode or self.planner_enabled or self.hold_position:
+                self.clear_control_intent("PX4 is disarmed", clear_arm=False)
+            return
+
+        if was_offboard and msg.mode != "OFFBOARD" and self.offboard_mode:
+            self.clear_control_intent("PX4 left OFFBOARD mode", clear_arm=False)
+
+    def clear_control_intent(self, reason: str, clear_arm: bool) -> None:
+        params = [
+            Parameter("offboard_mode", Parameter.Type.BOOL, False),
+            Parameter("planner_enabled", Parameter.Type.BOOL, False),
+            Parameter("hold_position", Parameter.Type.BOOL, False),
+        ]
+        if clear_arm:
+            params.append(Parameter("arm", Parameter.Type.BOOL, False))
+
+        self.suppress_arm_request = True
+        try:
+            self.set_parameters(params)
+        finally:
+            self.suppress_arm_request = False
+
+        self.hold_setpoint = None
+        self.have_published_setpoint = False
+        self.last_mode_request_time = None
+        self.get_logger().warn("%s; cleared bridge offboard control intent" % reason)
 
     def odom_callback(self, msg: Odometry) -> None:
         raw_p = (

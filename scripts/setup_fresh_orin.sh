@@ -138,7 +138,7 @@ export LD_LIBRARY_PATH="${WORKSPACE}/install/gtsam/lib:${LD_LIBRARY_PATH:-}"
 info "Building core ROS packages"
 cd "${WORKSPACE}"
 colcon build --symlink-install \
-  --packages-select mars_quadrotor_msgs rog_map super_planner super_px4_mavros_offboard_bridge livox_ros_driver2 aloam_velodyne \
+  --packages-select mars_quadrotor_msgs rog_map super_planner super_px4_mavros_offboard_bridge mission_planner livox_ros_driver2 aloam_velodyne \
   --cmake-args \
     -DCMAKE_BUILD_TYPE=Release \
     -DROS_EDITION=ROS2 \
@@ -158,6 +158,7 @@ ros2 pkg executables livox_ros_driver2
 ros2 pkg executables fast_lio
 ros2 pkg executables super_planner
 ros2 pkg executables super_px4_mavros_offboard_bridge
+ros2 pkg executables mission_planner
 ros2 pkg executables aloam_velodyne
 ros2 pkg executables foxglove_bridge
 
@@ -185,6 +186,21 @@ unset _rviz_config
 echo "config written to ${HOME}/.config/smug/superplanner.yml"
 echo "run: smug start superplanner"
 
+info "Rendering smug config for 'smug start superplanner_mission'"
+_rviz_config="${SRC_DIR}/super_planner/rviz/mid360_goal_path.rviz"
+sed \
+  -e "s#/home/usrga2rl/super_ws#${WORKSPACE}#g" \
+  -e "s#/home/jetson/super_ws#${WORKSPACE}#g" \
+  -e "s#/home/usrg/workspace/super_ws#${WORKSPACE}#g" \
+  -e "s#__WORKSPACE__#${WORKSPACE}#g" \
+  -e "s#__ENABLE_RVIZ__#1#g" \
+  -e "s#__RVIZ_CONFIG__#${_rviz_config}#g" \
+  "${SCRIPT_DIR}/super_mid360_mission.smug.yml" \
+  > "${HOME}/.config/smug/superplanner_mission.yml"
+unset _rviz_config
+echo "config written to ${HOME}/.config/smug/superplanner_mission.yml"
+echo "run: smug start superplanner_mission"
+
 _zenoh_note=""
 if [[ "${USE_ZENOH}" == "1" ]]; then
   _zenoh_note="
@@ -203,6 +219,8 @@ Before running:
      source ${WORKSPACE}/install/fast_lio/share/fast_lio/local_setup.bash${_zenoh_note}
   3. Start the tmux stack:
      smug start superplanner
+     # mission-autostart variant:
+     smug start superplanner_mission
      (or: ${SCRIPT_DIR}/start_super_mid360_tmux.sh)
 
 MSG

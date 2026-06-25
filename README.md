@@ -142,6 +142,12 @@ Start the tmux/smug runtime:
 smug start superplanner
 ```
 
+To start the same MID360 stack with the waypoint mission pane enabled:
+
+```bash
+smug start superplanner_mission
+```
+
 Tab-completion for `smug` project names is installed automatically by `setup_fresh_orin.sh`. Restart your shell (or `source /etc/bash_completion.d/smug`) if completion is not active yet.
 
 Stop it:
@@ -150,7 +156,7 @@ Stop it:
 smug stop superplanner
 ```
 
-The setup script installs `smug` to `/usr/local/bin/` and writes the rendered config to `~/.config/smug/superplanner.yml`. If you move the workspace, re-run `setup_fresh_orin.sh` (or edit that file directly) to update the path.
+The setup script installs `smug` to `/usr/local/bin/` and writes rendered configs to `~/.config/smug/superplanner.yml` and `~/.config/smug/superplanner_mission.yml`. If you move the workspace, re-run `setup_fresh_orin.sh` (or edit those files directly) to update the path.
 
 The wrapper scripts remain available if you need to override RViz options at start time:
 
@@ -168,6 +174,7 @@ The tmux session starts separate windows/panes for:
 - SC-PGO FAST_LIO_SLAM backend
 - Foxglove bridge on `ws://<robot-ip>:8765` for Lichtblick/Foxglove
 - PX4/MAVROS offboard bridge
+- Optional waypoint mission node in the `superplanner_mission` config
 - SUPER `fsm_node`
 - 3D goal adapter
 - trajectory visualization helper

@@ -1,0 +1,13 @@
+goal_pub_topic: "/goal_pose"
+goal_frame_id: "camera_init"
+odom_topic: "/Odometry"
+# 0 for RVIZ click, 1 for Mavros RC, 2 for start after delay.
+start_trigger_type: 2
+start_program_delay: 3.0
+# 0 for path and 1 for waypoints.
+cmd_type: 1
+# Fallback waypoint switch distance. Each waypoint row can also provide its own.
+switch_dis: 3.0
+odom_timeout: 0.5
+# Set high so each waypoint goal is published once when selected.
+publish_dt: 99999.0

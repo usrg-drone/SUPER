@@ -1,0 +1,119 @@
+session: super-mid360-mission
+attach: true
+root: __WORKSPACE__
+
+env:
+  ROS_DISTRO: humble
+  ROS_DOMAIN_ID: "0"
+  RMW_IMPLEMENTATION: rmw_zenoh_cpp
+  ROS_LOG_DIR: __WORKSPACE__/log/ros2
+  ENABLE_RVIZ: "1"
+  RVIZ_CONFIG: /home/usrg/workspace/super_ws/src/super_planner/rviz/mid360_goal_path.rviz
+
+before_start:
+  - mkdir -p __WORKSPACE__/log/ros2
+
+windows:
+  - name: middleware
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run rmw_zenoh_cpp rmw_zenohd
+
+  - name: livox
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run livox_ros_driver2 livox_ros_driver2_node --ros-args -r __node:=livox_lidar_publisher -p xfer_format:=1 -p multi_topic:=0 -p data_src:=0 -p publish_freq:=10.0 -p output_data_type:=0 -p frame_id:=livox_frame -p lvx_file_path:=/home/livox/livox_test.lvx -p user_config_path:=__WORKSPACE__/src/livox_ros_driver2/config/MID360_config.json -p cmdline_input_bd_code:=livox0000000001
+
+  - name: fast-lio
+    layout: tiled
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - source __WORKSPACE__/install/fast_lio/share/fast_lio/local_setup.bash
+      - ros2 run fast_lio fastlio_mapping --ros-args --params-file __WORKSPACE__/install/fast_lio/share/fast_lio/config/mid360.yaml -p use_sim_time:=false
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - source __WORKSPACE__/install/fast_lio/share/fast_lio/local_setup.bash
+          - ros2 run fast_lio fastlio_path_publisher.py --ros-args -r __node:=fastlio_path_node -p odom_topic:=/Odometry -p use_sim_time:=false
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --qx 0 --qy 0 --qz 0 --qw 1 --frame-id camera_init --child-frame-id world
+
+  - name: slam
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 launch aloam_velodyne fast_lio_slam.launch.py params_file:=__WORKSPACE__/install/aloam_velodyne/share/aloam_velodyne/config/fast_lio_slam.yaml
+
+  - name: foxglove
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=0.0.0.0 port:=8765
+
+  - name: px4-bridge
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run super_px4_mavros_offboard_bridge offboard_bridge_node --ros-args -r __node:=super_px4_mavros_offboard_bridge -p use_sim_time:=false -p odom_topic:=/Odometry -p pos_cmd_topic:=/planning/pos_cmd -p vision_pose_topic:=/mavros/vision_pose/pose -p setpoint_topic:=/mavros/setpoint_raw/local -p takeoff_altitude:=1.5 -p arm:=false -p offboard_mode:=false -p hold_position:=false -p planner_enabled:=false
+
+  - name: super
+    selected: true
+    layout: tiled
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run super_planner fsm_node --ros-args -r __node:=fsm_node -p use_sim_time:=false -p config_name:=fast_lio_mid360_ros2.yaml
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 run super_planner goal_point_3d_node --ros-args -r __node:=goal_point_3d_node -p input_topic:=/goal_point_3d -p input_pose_topic:=/goal_pose_2d -p output_topic:=/goal_pose -p default_frame_id:=camera_init -p use_yaw:=false
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 run super_planner poly_traj_viz_node --ros-args -r __node:=poly_traj_viz_node -p input_topic:=/planning_cmd/poly_traj -p path_topic:=/planning_cmd/poly_traj_path -p marker_topic:=/planning_cmd/poly_traj_marker -p output_frame_id:=camera_init -p sample_dt:=0.05
+
+  - name: mission
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run mission_planner waypoint_mission --ros-args -r __node:=waypoint_mission -p config_name:=waypoint_mid360_rectangle.yaml -p data_name:=rectangle_28x8.txt
+
+  - name: monitor
+    layout: tiled
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/slam/optimized|/slam/loop|/foxglove_bridge|/goal_point_3d|/goal_pose_2d|/goal_pose|/mission/mkr|/planning|/planning_cmd|/mavros/vision_pose|/mavros/setpoint_raw)" || true'
+    panes:
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 topic hz /cloud_registered
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 topic hz /Odometry
+      - type: horizontal
+        commands:
+          - source /opt/ros/humble/setup.bash
+          - source __WORKSPACE__/install/setup.bash
+          - ros2 topic hz /slam/optimized_odom
+
+  - name: rviz
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - bash -lc 'if [[ "__ENABLE_RVIZ__" == "1" ]]; then echo "Starting RViz with __RVIZ_CONFIG__"; rviz2 -d "__RVIZ_CONFIG__"; else echo "RViz disabled (set ENABLE_RVIZ=1 to auto-start)"; tail -f /dev/null; fi'

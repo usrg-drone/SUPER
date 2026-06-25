@@ -31,4 +31,9 @@ ros2 service call /super_px4_mavros_offboard_bridge/set_publish_vision_pose std_
 ros2 service call /super_px4_mavros_offboard_bridge/set_publish_setpoints std_srvs/srv/SetBool "{data: true}"
 ```
 
+Use the services as the normal field-control interface. If PX4/MAVROS reports that
+the vehicle disarmed, the bridge clears `arm`, `offboard_mode`, `planner_enabled`,
+and `hold_position`. If PX4 leaves `OFFBOARD` while still armed, the bridge clears
+its offboard/planner/hold intent without sending a disarm request.
+
 The external vision relay keeps a continuous output pose by applying an internal transform offset when incoming SLAM odometry has a large discontinuity.
