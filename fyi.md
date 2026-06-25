@@ -60,12 +60,12 @@ Locations:
 
 ## MAVROS Offboard Bridge
 
-- Added source for `mavros_offboard_bridge_node`.
-- It is built only when `mavros_msgs` is available in the workspace/environment.
-- Launch hook is disabled by default:
+- Added standalone package `super_px4_mavros_offboard_bridge`.
+- The smug runtime starts it in the `px4-bridge` window.
+- It can also be launched directly:
 
 ```bash
-ros2 launch super_planner fast_lio_mid360.launch.py mavros_offboard:=true
+ros2 launch super_px4_mavros_offboard_bridge offboard_bridge.launch.py
 ```
 
 - FAST-LIO odometry should feed MAVROS external vision:
@@ -75,9 +75,17 @@ ros2 launch super_planner fast_lio_mid360.launch.py mavros_offboard:=true
   - input: `/planning/pos_cmd`
   - output: `/mavros/setpoint_raw/local`
 - MAVROS handles the ROS ENU to PX4 NED transform internally.
-- The node does not arm or change modes. Use MAVROS services or a separate supervisor for:
+- The bridge exposes live ROS parameters:
+  - `arm`
+  - `offboard_mode`
+  - `hold_position`
+  - `planner_enabled`
+  - `takeoff_altitude`
+- When armed and placed into offboard mode, it publishes a hover setpoint at the configured ENU takeoff altitude until `planner_enabled` is true.
+- It calls standard MAVROS services for:
   - `/mavros/set_mode`
   - `/mavros/cmd/arming`
+- External vision pose continuity is guarded with an internal offset so large SLAM/backend jumps are not directly sent to PX4.
 
 Use `/planning_cmd/poly_traj` only if a downstream MPC/controller is designed to consume full polynomial segments. For MAVROS offboard setpoints, `/planning/pos_cmd` is the right input.
 

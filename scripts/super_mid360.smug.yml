@@ -58,6 +58,12 @@ windows:
       - source __WORKSPACE__/install/setup.bash
       - ros2 launch foxglove_bridge foxglove_bridge_launch.xml address:=0.0.0.0 port:=8765
 
+  - name: px4-bridge
+    commands:
+      - source /opt/ros/humble/setup.bash
+      - source __WORKSPACE__/install/setup.bash
+      - ros2 run super_px4_mavros_offboard_bridge offboard_bridge_node --ros-args -r __node:=super_px4_mavros_offboard_bridge -p use_sim_time:=false -p odom_topic:=/Odometry -p pos_cmd_topic:=/planning/pos_cmd -p vision_pose_topic:=/mavros/vision_pose/pose -p setpoint_topic:=/mavros/setpoint_raw/local -p takeoff_altitude:=1.5 -p arm:=false -p offboard_mode:=false -p hold_position:=false -p planner_enabled:=false
+
   - name: super
     selected: true
     layout: tiled
@@ -82,7 +88,7 @@ windows:
     commands:
       - source /opt/ros/humble/setup.bash
       - source __WORKSPACE__/install/setup.bash
-      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/slam/optimized|/slam/loop|/foxglove_bridge|/goal_point_3d|/goal_pose_2d|/goal_pose|/planning|/planning_cmd)" || true'
+      - watch -n 1 'ros2 topic list | sort | grep -E "(/livox/lidar|/livox/imu|/cloud_registered|/Odometry|/slam/optimized|/slam/loop|/foxglove_bridge|/goal_point_3d|/goal_pose_2d|/goal_pose|/planning|/planning_cmd|/mavros/vision_pose|/mavros/setpoint_raw)" || true'
     panes:
       - type: horizontal
         commands:

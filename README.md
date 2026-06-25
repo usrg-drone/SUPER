@@ -7,6 +7,7 @@ This branch packages a ROS 2 Humble runtime stack for a Jetson Orin NX 16 GB usi
 - `rog_map`: local map backend used by SUPER.
 - `FAST_LIO_GPU`: CUDA-enabled FAST-LIO for lidar-inertial odometry.
 - `SC-PGO`: GTSAM/Scan Context backend for FAST-LIO SLAM loop closure and optimized maps.
+- `super_px4_mavros_offboard_bridge`: PX4/MAVROS offboard bridge for external vision, arming/mode requests, takeoff hover, hold, and SUPER setpoints.
 - `Livox-SDK2`: local SDK source used by `livox_ros_driver2`.
 - `livox_ros_driver2`: ROS 2 Livox driver for MID360 custom messages.
 - `scripts/`: build/setup helpers and a `smug` tmux runtime configuration.
@@ -16,9 +17,13 @@ The intended runtime data flow is:
 ```text
 MID360 -> livox_ros_driver2 -> FAST_LIO_GPU -> /cloud_registered + /Odometry -> SUPER
                                                         |
+                                                        +-> PX4/MAVROS bridge -> /mavros/vision_pose/pose
+                                                        |
                                                         v
                                                      /cloud_registered_body + /Odometry
                                                         -> SC-PGO -> /slam/optimized_path + /slam/optimized_map
+
+SUPER -> /planning/pos_cmd -> PX4/MAVROS bridge -> /mavros/setpoint_raw/local
 ```
 
 SUPER's planner goal topic is `/goal_pose`. The `/goal_point_3d` topic is only an optional convenience input that is converted into `/goal_pose` by `goal_point_3d_node`.
@@ -66,7 +71,7 @@ The script will:
 - install `ros-humble-foxglove-bridge` for Lichtblick/Foxglove WebSocket visualization
 - install GTSAM source-build dependencies: Eigen, Boost, and TBB development packages
 - build GTSAM 4.2.0 from official source into `install/gtsam` for the SC-PGO pose-graph backend
-- build `mars_quadrotor_msgs`, `rog_map`, `super_planner`, and `livox_ros_driver2`
+- build `mars_quadrotor_msgs`, `rog_map`, `super_planner`, `super_px4_mavros_offboard_bridge`, and `livox_ros_driver2`
 - build `SC-PGO` as the `aloam_velodyne` package
 - build `FAST_LIO_GPU` with CUDA enabled for Orin architecture `87`
 - verify the installed ROS executables
@@ -162,6 +167,7 @@ The tmux session starts separate windows/panes for:
 - FAST-LIO path publisher
 - SC-PGO FAST_LIO_SLAM backend
 - Foxglove bridge on `ws://<robot-ip>:8765` for Lichtblick/Foxglove
+- PX4/MAVROS offboard bridge
 - SUPER `fsm_node`
 - 3D goal adapter
 - trajectory visualization helper
@@ -239,6 +245,40 @@ ws://<robot-ip>:8765
 Useful topics to add in Lichtblick include `/cloud_registered`, `/Odometry`, `/fastlio/path`, `/slam/optimized_map`, `/slam/optimized_path`, `/slam/optimized_odom`, and the SUPER `/planning_cmd/*` visualization topics.
 
 SC-PGO consumes `/cloud_registered_body`, not `/cloud_registered`. FAST-LIO publishes `/cloud_registered` already transformed into `camera_init`; the pose-graph backend needs the local/body-frame scan so it can apply the optimized pose exactly once when building `/slam/optimized_map`.
+
+## PX4 / MAVROS Offboard Bridge
+
+The `super_px4_mavros_offboard_bridge` package is started by the smug session in the `px4-bridge` window. It uses standard MAVROS ROS 2 topics and services:
+
+```text
+/Odometry                    -> /mavros/vision_pose/pose
+/planning/pos_cmd            -> /mavros/setpoint_raw/local
+/mavros/state                -> bridge state monitor
+/mavros/cmd/arming           <- bridge arm/disarm requests
+/mavros/set_mode             <- bridge OFFBOARD requests
+```
+
+The external vision relay publishes FAST-LIO odometry as a pose stream for PX4. If the SLAM/backend pose has a large discontinuity, the bridge updates an internal offset so the pose sent to PX4 remains continuous instead of jumping with the corrected map.
+
+The bridge has live ROS parameters for field control:
+
+```bash
+ros2 param set /super_px4_mavros_offboard_bridge arm true
+ros2 param set /super_px4_mavros_offboard_bridge offboard_mode true
+ros2 param set /super_px4_mavros_offboard_bridge planner_enabled true
+ros2 param set /super_px4_mavros_offboard_bridge hold_position true
+ros2 param set /super_px4_mavros_offboard_bridge takeoff_altitude 1.5
+```
+
+Typical activation flow:
+
+1. Confirm `/Odometry` and MAVROS are healthy.
+2. Set `arm:=true`.
+3. Set `offboard_mode:=true`; the bridge streams a hover setpoint at the current ENU `x/y` and `takeoff_altitude`.
+4. Set `planner_enabled:=true` when SUPER should take over with `/planning/pos_cmd`.
+5. Set `hold_position:=true` any time you want to latch the current continuous pose and ignore planner setpoints.
+
+`/planning_cmd/poly_traj` is for visualization or downstream controllers that consume full polynomial segments. For MAVROS offboard setpoints, use `/planning/pos_cmd`.
 
 ## SLAM Backend
 
@@ -374,6 +414,13 @@ SUPER outputs:
 /planning_cmd/poly_traj_marker
 ```
 
+PX4/MAVROS bridge outputs:
+
+```text
+/mavros/vision_pose/pose
+/mavros/setpoint_raw/local
+```
+
 ## Troubleshooting
 
 If `livox_ros_driver2` does not receive data:
@@ -405,6 +452,13 @@ If SUPER does not plan:
 - confirm `/Odometry` is publishing
 - confirm `/goal_pose` is published; if using `/goal_point_3d`, confirm the adapter republishes it to `/goal_pose`
 - check the `super` tmux pane logs
+
+If PX4 does not enter OFFBOARD:
+
+- confirm MAVROS is running and `/mavros/state` is publishing
+- confirm `/mavros/vision_pose/pose` is publishing from the `px4-bridge` pane
+- confirm `/mavros/setpoint_raw/local` is publishing before requesting OFFBOARD
+- confirm `arm`, `offboard_mode`, and `planner_enabled`/`hold_position` parameters are set as intended
 
 If the SLAM backend dies:
 
